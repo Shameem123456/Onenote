@@ -1,0 +1,1749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notebook Pro - Web-Based Notes</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        :root {
+            --primary: #5c6bc0;
+            --primary-dark: #3f51b5;
+            --secondary: #ff4081;
+            --bg-dark: #1e1e1e;
+            --bg-darker: #121212;
+            --bg-card: #2d2d2d;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --border-color: #404040;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+            --transition: all 0.3s ease;
+            --radius: 8px;
+        }
+
+        .light-mode {
+            --bg-dark: #f5f5f5;
+            --bg-darker: #ffffff;
+            --bg-card: #ffffff;
+            --text-primary: #333333;
+            --text-secondary: #666666;
+            --border-color: #dddddd;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+
+        /* App container */
+        .app-container {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* View container for hierarchical navigation */
+        .view-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* View - only one active at a time */
+        .view {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            overflow: auto;
+            transition: transform 0.4s ease, opacity 0.4s ease;
+            background-color: var(--bg-darker);
+        }
+
+        .view.active {
+            transform: translateX(0);
+            opacity: 1;
+            z-index: 1;
+        }
+
+        .view.inactive {
+            transform: translateX(100%);
+            opacity: 0;
+            z-index: 0;
+        }
+
+        /* Section View */
+        .section-view {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .view-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .view-title {
+            font-size: 28px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .view-title i {
+            color: var(--primary);
+        }
+
+        /* Theme toggle */
+        .theme-toggle {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .theme-toggle:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Add button */
+        .add-button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: var(--transition);
+        }
+
+        .add-button:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        /* Cards grid */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .card {
+            background-color: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            cursor: pointer;
+            transition: var(--transition);
+            border: 1px solid transparent;
+            position: relative;
+        }
+
+        .card:hover {
+            border-color: var(--primary);
+            transform: translateY(-4px);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+
+        .action-btn:hover {
+            background-color: rgba(0, 0, 0, 0.1);
+            color: var(--text-primary);
+        }
+
+        .delete-btn:hover {
+            background-color: rgba(255, 64, 129, 0.1);
+            color: #ff4081;
+        }
+
+        .card-content {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* Page View */
+        .page-view {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .back-button {
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+            padding: 8px 16px;
+            border-radius: var(--radius);
+            transition: var(--transition);
+        }
+
+        .back-button:hover {
+            background-color: var(--bg-card);
+        }
+
+        /* Editor View */
+        .editor-view {
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .editor-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--bg-darker);
+        }
+
+        .editor-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .editor-date {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .editor-toolbar {
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border-color);
+            background-color: var(--bg-card);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            z-index: 10;
+        }
+
+        .toolbar-group {
+            display: flex;
+            gap: 4px;
+            padding-right: 12px;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .toolbar-group:last-child {
+            border-right: none;
+        }
+
+        .toolbar-btn {
+            background: transparent;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-primary);
+            transition: var(--transition);
+        }
+
+        .toolbar-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .toolbar-btn.active {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .select-control {
+            background: var(--bg-darker);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-primary);
+            padding: 8px 12px;
+            height: 40px;
+        }
+
+        .editor-content {
+            flex: 1;
+            overflow: auto;
+            position: relative;
+            padding: 20px;
+            background-color: var(--bg-darker);
+        }
+
+        /* Rich text editor */
+        .note-content {
+            min-height: 100%;
+            outline: none;
+            padding: 20px;
+            font-size: 16px;
+            line-height: 1.6;
+            color: var(--text-primary);
+            position: relative;
+            z-index: 2;
+        }
+
+        .note-content:empty:before {
+            content: attr(placeholder);
+            color: var(--text-secondary);
+            cursor: text;
+        }
+
+        /* Drawing canvas */
+        .drawing-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 3;
+            touch-action: none;
+        }
+
+        /* Mode indicator */
+        .mode-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: var(--primary);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition);
+        }
+
+        .modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background-color: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 30px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-title {
+            font-size: 22px;
+            margin-bottom: 20px;
+            color: var(--text-primary);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-darker);
+            color: var(--text-primary);
+            font-size: 16px;
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: var(--radius);
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .view {
+                padding: 15px;
+            }
+            
+            .cards-grid {
+                grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            }
+            
+            .editor-toolbar {
+                padding: 8px 12px;
+                overflow-x: auto;
+            }
+            
+            .toolbar-group {
+                flex-shrink: 0;
+            }
+            
+            .editor-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .view-title {
+                font-size: 24px;
+            }
+            
+            .add-button span {
+                display: none;
+            }
+            
+            .add-button {
+                padding: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="view-container">
+            <!-- Section View -->
+            <div class="view section-view active" id="section-view">
+                <div class="view-header">
+                    <div class="view-title">
+                        <i class="fas fa-book"></i>
+                        Notebooks
+                    </div>
+                    <div class="header-actions">
+                        <button class="theme-toggle" id="theme-toggle">
+                            <i class="fas fa-moon"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <button class="add-button" id="add-section-btn">
+                    <i class="fas fa-plus"></i>
+                    <span>New Section</span>
+                </button>
+                
+                <div class="cards-grid" id="sections-container">
+                    <!-- Sections will be dynamically added here -->
+                </div>
+            </div>
+            
+            <!-- Page View -->
+            <div class="view page-view inactive" id="page-view">
+                <button class="back-button" id="back-to-sections">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Sections
+                </button>
+                
+                <div class="view-header">
+                    <div class="view-title" id="current-section-title">
+                        <i class="fas fa-folder"></i>
+                        Section Name
+                    </div>
+                </div>
+                
+                <button class="add-button" id="add-page-btn">
+                    <i class="fas fa-plus"></i>
+                    <span>New Page</span>
+                </button>
+                
+                <div class="cards-grid" id="pages-container">
+                    <!-- Pages will be dynamically added here -->
+                </div>
+            </div>
+            
+            <!-- Editor View -->
+            <div class="view editor-view inactive" id="editor-view">
+                <div class="editor-header">
+                    <div>
+                        <div class="editor-title" id="editor-page-title">Page Title</div>
+                        <div class="editor-date" id="editor-page-date">Today</div>
+                    </div>
+                    <div>
+                        <button class="back-button" id="back-to-pages">
+                            <i class="fas fa-arrow-left"></i>
+                            Back to Pages
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="editor-toolbar" id="editor-toolbar">
+                    <!-- Text editing tools -->
+                    <div class="toolbar-group" id="text-tools">
+                        <select class="select-control" id="font-family">
+                            <option value="Arial">Arial</option>
+                            <option value="Georgia">Georgia</option>
+                            <option value="Courier New">Courier New</option>
+                            <option value="Times New Roman">Times New Roman</option>
+                        </select>
+                        
+                        <select class="select-control" id="font-size">
+                            <option value="12px">12px</option>
+                            <option value="14px">14px</option>
+                            <option value="16px" selected>16px</option>
+                            <option value="18px">18px</option>
+                            <option value="24px">24px</option>
+                            <option value="32px">32px</option>
+                        </select>
+                        
+                        <button class="toolbar-btn" id="heading1" title="Heading 1">
+                            <i class="fas fa-heading"></i><sub>1</sub>
+                        </button>
+                        
+                        <button class="toolbar-btn" id="heading2" title="Heading 2">
+                            <i class="fas fa-heading"></i><sub>2</sub>
+                        </button>
+                        
+                        <button class="toolbar-btn" id="bold" title="Bold">
+                            <i class="fas fa-bold"></i>
+                        </button>
+                        
+                        <button class="toolbar-btn" id="italic" title="Italic">
+                            <i class="fas fa-italic"></i>
+                        </button>
+                        
+                        <button class="toolbar-btn" id="underline" title="Underline">
+                            <i class="fas fa-underline"></i>
+                        </button>
+                        
+                        <button class="toolbar-btn" id="highlight" title="Highlight">
+                            <i class="fas fa-highlighter"></i>
+                        </button>
+                        
+                        <button class="toolbar-btn" id="bullet-list" title="Bullet List">
+                            <i class="fas fa-list-ul"></i>
+                        </button>
+                        
+                        <button class="toolbar-btn" id="numbered-list" title="Numbered List">
+                            <i class="fas fa-list-ol"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="toolbar-group">
+                        <button class="toolbar-btn" id="insert-image" title="Insert Image">
+                            <i class="fas fa-image"></i>
+                        </button>
+                        
+                        <button class="toolbar-btn" id="insert-table" title="Insert Table">
+                            <i class="fas fa-table"></i>
+                        </button>
+                        
+                        <button class="toolbar-btn" id="draw-mode" title="Drawing Mode">
+                            <i class="fas fa-pencil-alt"></i>
+                        </button>
+                        
+                        <button class="toolbar-btn" id="undo" title="Undo">
+                            <i class="fas fa-undo"></i>
+                        </button>
+                        
+                        <button class="toolbar-btn" id="redo" title="Redo">
+                            <i class="fas fa-redo"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Drawing tools (hidden by default) -->
+                    <div class="toolbar-group" id="draw-tools" style="display: none;">
+                        <button class="toolbar-btn active" id="pen-tool" title="Pen">
+                            <i class="fas fa-pen"></i>
+                        </button>
+                        
+                        <button class="toolbar-btn" id="rectangle-tool" title="Rectangle">
+                            <i class="fas fa-square"></i>
+                        </button>
+                        
+                        <button class="toolbar-btn" id="circle-tool" title="Circle">
+                            <i class="fas fa-circle"></i>
+                        </button>
+                        
+                        <button class="toolbar-btn" id="arrow-tool" title="Arrow">
+                            <i class="fas fa-long-arrow-alt-right"></i>
+                        </button>
+                        
+                        <input type="color" id="draw-color" value="#ff4081" title="Drawing Color">
+                        
+                        <select class="select-control" id="draw-width">
+                            <option value="2">Thin</option>
+                            <option value="4" selected>Medium</option>
+                            <option value="6">Thick</option>
+                            <option value="8">Very Thick</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="editor-content" id="editor-content">
+                    <div class="note-content" 
+                         contenteditable="true" 
+                         id="note-content" 
+                         placeholder="Start typing here... Double-click anywhere to add text.">
+                    </div>
+                    <canvas class="drawing-canvas" id="drawing-canvas"></canvas>
+                </div>
+                
+                <div class="mode-indicator" id="mode-indicator">
+                    Text Mode
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modals -->
+        <div class="modal" id="section-modal">
+            <div class="modal-content">
+                <h2 class="modal-title" id="section-modal-title">New Section</h2>
+                <div class="form-group">
+                    <label class="form-label" for="section-name">Section Name</label>
+                    <input type="text" class="form-input" id="section-name" placeholder="Enter section name">
+                </div>
+                <div class="form-actions">
+                    <button class="btn btn-secondary" id="cancel-section">Cancel</button>
+                    <button class="btn btn-primary" id="save-section">Save</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal" id="page-modal">
+            <div class="modal-content">
+                <h2 class="modal-title" id="page-modal-title">New Page</h2>
+                <div class="form-group">
+                    <label class="form-label" for="page-name">Page Name</label>
+                    <input type="text" class="form-input" id="page-name" placeholder="Enter page name">
+                </div>
+                <div class="form-actions">
+                    <button class="btn btn-secondary" id="cancel-page">Cancel</button>
+                    <button class="btn btn-primary" id="save-page">Save</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal" id="image-modal">
+            <div class="modal-content">
+                <h2 class="modal-title">Insert Image</h2>
+                <div class="form-group">
+                    <label class="form-label" for="image-url">Image URL</label>
+                    <input type="text" class="form-input" id="image-url" placeholder="Paste image URL here">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Or upload from device</label>
+                    <input type="file" class="form-input" id="image-upload" accept="image/*">
+                </div>
+                <div class="form-actions">
+                    <button class="btn btn-secondary" id="cancel-image">Cancel</button>
+                    <button class="btn btn-primary" id="insert-image-btn">Insert</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal" id="table-modal">
+            <div class="modal-content">
+                <h2 class="modal-title">Insert Table</h2>
+                <div class="form-group">
+                    <label class="form-label" for="table-rows">Number of Rows</label>
+                    <input type="number" class="form-input" id="table-rows" value="3" min="1" max="10">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="table-columns">Number of Columns</label>
+                    <input type="number" class="form-input" id="table-columns" value="3" min="1" max="10">
+                </div>
+                <div class="form-actions">
+                    <button class="btn btn-secondary" id="cancel-table">Cancel</button>
+                    <button class="btn btn-primary" id="insert-table-btn">Insert</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Application state
+        const state = {
+            currentView: 'section',
+            sections: [],
+            currentSection: null,
+            currentPage: null,
+            isDarkMode: true,
+            isDrawingMode: false,
+            drawing: {
+                tool: 'pen',
+                color: '#ff4081',
+                width: 4,
+                isDrawing: false,
+                shapes: [],
+                currentShape: null
+            },
+            undoStack: [],
+            redoStack: []
+        };
+
+        // DOM elements
+        const sectionView = document.getElementById('section-view');
+        const pageView = document.getElementById('page-view');
+        const editorView = document.getElementById('editor-view');
+        const sectionsContainer = document.getElementById('sections-container');
+        const pagesContainer = document.getElementById('pages-container');
+        const currentSectionTitle = document.getElementById('current-section-title');
+        const editorPageTitle = document.getElementById('editor-page-title');
+        const editorPageDate = document.getElementById('editor-page-date');
+        const noteContent = document.getElementById('note-content');
+        const drawingCanvas = document.getElementById('drawing-canvas');
+        const modeIndicator = document.getElementById('mode-indicator');
+        const themeToggle = document.getElementById('theme-toggle');
+        
+        // Toolbar elements
+        const textTools = document.getElementById('text-tools');
+        const drawTools = document.getElementById('draw-tools');
+        const drawModeBtn = document.getElementById('draw-mode');
+        const penTool = document.getElementById('pen-tool');
+        const rectangleTool = document.getElementById('rectangle-tool');
+        const circleTool = document.getElementById('circle-tool');
+        const arrowTool = document.getElementById('arrow-tool');
+        const drawColor = document.getElementById('draw-color');
+        const drawWidth = document.getElementById('draw-width');
+        
+        // Modal elements
+        const sectionModal = document.getElementById('section-modal');
+        const pageModal = document.getElementById('page-modal');
+        const imageModal = document.getElementById('image-modal');
+        const tableModal = document.getElementById('table-modal');
+        
+        // Initialize app
+        function initApp() {
+            loadFromLocalStorage();
+            setupEventListeners();
+            renderSections();
+            setupCanvas();
+            updateTheme();
+            
+            // Set initial date
+            editorPageDate.textContent = formatDate(new Date());
+        }
+        
+        // Load data from localStorage
+        function loadFromLocalStorage() {
+            const savedData = localStorage.getItem('notebookProData');
+            if (savedData) {
+                const parsedData = JSON.parse(savedData);
+                state.sections = parsedData.sections || [];
+            } else {
+                // Create default sections for demo
+                state.sections = [
+                    {
+                        id: 1,
+                        name: 'Personal Notes',
+                        pages: [
+                            { id: 1, name: 'Shopping List', content: '', lastModified: new Date().toISOString() },
+                            { id: 2, name: 'Project Ideas', content: '', lastModified: new Date().toISOString() }
+                        ]
+                    },
+                    {
+                        id: 2,
+                        name: 'Work',
+                        pages: [
+                            { id: 3, name: 'Meeting Notes', content: '', lastModified: new Date().toISOString() },
+                            { id: 4, name: 'Project Plan', content: '', lastModified: new Date().toISOString() }
+                        ]
+                    },
+                    {
+                        id: 3,
+                        name: 'Learning',
+                        pages: [
+                            { id: 5, name: 'JavaScript Notes', content: '', lastModified: new Date().toISOString() },
+                            { id: 6, name: 'Design Principles', content: '', lastModified: new Date().toISOString() }
+                        ]
+                    }
+                ];
+                saveToLocalStorage();
+            }
+        }
+        
+        // Save data to localStorage
+        function saveToLocalStorage() {
+            const dataToSave = {
+                sections: state.sections
+            };
+            localStorage.setItem('notebookProData', JSON.stringify(dataToSave));
+        }
+        
+        // Setup event listeners
+        function setupEventListeners() {
+            // Navigation buttons
+            document.getElementById('add-section-btn').addEventListener('click', () => openSectionModal());
+            document.getElementById('add-page-btn').addEventListener('click', () => openPageModal());
+            document.getElementById('back-to-sections').addEventListener('click', navigateToSectionView);
+            document.getElementById('back-to-pages').addEventListener('click', navigateToPageView);
+            
+            // Theme toggle
+            themeToggle.addEventListener('click', toggleTheme);
+            
+            // Modal buttons
+            document.getElementById('save-section').addEventListener('click', saveSection);
+            document.getElementById('cancel-section').addEventListener('click', () => sectionModal.classList.remove('active'));
+            document.getElementById('save-page').addEventListener('click', savePage);
+            document.getElementById('cancel-page').addEventListener('click', () => pageModal.classList.remove('active'));
+            document.getElementById('insert-image-btn').addEventListener('click', insertImage);
+            document.getElementById('cancel-image').addEventListener('click', () => imageModal.classList.remove('active'));
+            document.getElementById('insert-table-btn').addEventListener('click', insertTable);
+            document.getElementById('cancel-table').addEventListener('click', () => tableModal.classList.remove('active'));
+            
+            // Text editing tools
+            document.getElementById('font-family').addEventListener('change', (e) => {
+                document.execCommand('fontName', false, e.target.value);
+            });
+            
+            document.getElementById('font-size').addEventListener('change', (e) => {
+                document.execCommand('fontSize', false, e.target.value.replace('px', ''));
+            });
+            
+            document.getElementById('heading1').addEventListener('click', () => {
+                document.execCommand('formatBlock', false, '<h1>');
+            });
+            
+            document.getElementById('heading2').addEventListener('click', () => {
+                document.execCommand('formatBlock', false, '<h2>');
+            });
+            
+            document.getElementById('bold').addEventListener('click', () => {
+                document.execCommand('bold');
+            });
+            
+            document.getElementById('italic').addEventListener('click', () => {
+                document.execCommand('italic');
+            });
+            
+            document.getElementById('underline').addEventListener('click', () => {
+                document.execCommand('underline');
+            });
+            
+            document.getElementById('highlight').addEventListener('click', () => {
+                document.execCommand('backColor', false, '#FFEB3B');
+            });
+            
+            document.getElementById('bullet-list').addEventListener('click', () => {
+                document.execCommand('insertUnorderedList');
+            });
+            
+            document.getElementById('numbered-list').addEventListener('click', () => {
+                document.execCommand('insertOrderedList');
+            });
+            
+            document.getElementById('insert-image').addEventListener('click', () => {
+                imageModal.classList.add('active');
+            });
+            
+            document.getElementById('insert-table').addEventListener('click', () => {
+                tableModal.classList.add('active');
+            });
+            
+            document.getElementById('undo').addEventListener('click', undoAction);
+            document.getElementById('redo').addEventListener('click', redoAction);
+            
+            // Drawing mode toggle
+            drawModeBtn.addEventListener('click', toggleDrawingMode);
+            
+            // Drawing tools
+            penTool.addEventListener('click', () => setDrawingTool('pen'));
+            rectangleTool.addEventListener('click', () => setDrawingTool('rectangle'));
+            circleTool.addEventListener('click', () => setDrawingTool('circle'));
+            arrowTool.addEventListener('click', () => setDrawingTool('arrow'));
+            drawColor.addEventListener('change', (e) => {
+                state.drawing.color = e.target.value;
+            });
+            drawWidth.addEventListener('change', (e) => {
+                state.drawing.width = parseInt(e.target.value);
+            });
+            
+            // Double click to focus on editor
+            noteContent.addEventListener('dblclick', (e) => {
+                if (!state.isDrawingMode) {
+                    noteContent.focus();
+                    // Move cursor to clicked position
+                    const range = document.caretRangeFromPoint(e.clientX, e.clientY);
+                    if (range) {
+                        const sel = window.getSelection();
+                        sel.removeAllRanges();
+                        sel.addRange(range);
+                    }
+                }
+            });
+            
+            // Track changes for undo/redo
+            noteContent.addEventListener('input', trackContentChange);
+            
+            // Prevent default behavior for certain keys to avoid conflicts
+            noteContent.addEventListener('keydown', (e) => {
+                // Handle tab key for indentation
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    document.execCommand('indent');
+                }
+                
+                // Handle undo/redo with Ctrl/Cmd+Z and Ctrl/Cmd+Y
+                if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+                    e.preventDefault();
+                    undoAction();
+                }
+                
+                if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+                    e.preventDefault();
+                    redoAction();
+                }
+            });
+            
+            // Handle paste to preserve formatting
+            noteContent.addEventListener('paste', (e) => {
+                e.preventDefault();
+                const text = (e.originalEvent || e).clipboardData.getData('text/html') || 
+                             (e.originalEvent || e).clipboardData.getData('text/plain');
+                document.execCommand('insertHTML', false, text);
+                trackContentChange();
+            });
+            
+            // Handle image upload
+            document.getElementById('image-upload').addEventListener('change', handleImageUpload);
+        }
+        
+        // Setup canvas for drawing
+        function setupCanvas() {
+            const ctx = drawingCanvas.getContext('2d');
+            
+            // Set canvas size to match editor content
+            function resizeCanvas() {
+                drawingCanvas.width = noteContent.offsetWidth;
+                drawingCanvas.height = noteContent.offsetHeight;
+                redrawShapes();
+            }
+            
+            // Initial resize
+            resizeCanvas();
+            
+            // Resize on window resize
+            window.addEventListener('resize', resizeCanvas);
+            
+            // Drawing event listeners
+            drawingCanvas.addEventListener('mousedown', startDrawing);
+            drawingCanvas.addEventListener('mousemove', draw);
+            drawingCanvas.addEventListener('mouseup', stopDrawing);
+            drawingCanvas.addEventListener('mouseout', stopDrawing);
+            
+            // Touch events for mobile
+            drawingCanvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const mouseEvent = new MouseEvent('mousedown', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                drawingCanvas.dispatchEvent(mouseEvent);
+            });
+            
+            drawingCanvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const mouseEvent = new MouseEvent('mousemove', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                drawingCanvas.dispatchEvent(mouseEvent);
+            });
+            
+            drawingCanvas.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                const mouseEvent = new MouseEvent('mouseup', {});
+                drawingCanvas.dispatchEvent(mouseEvent);
+            });
+        }
+        
+        // Drawing functions
+        function startDrawing(e) {
+            if (!state.isDrawingMode) return;
+            
+            const rect = drawingCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            state.drawing.isDrawing = true;
+            
+            // Create new shape object
+            state.drawing.currentShape = {
+                tool: state.drawing.tool,
+                color: state.drawing.color,
+                width: state.drawing.width,
+                points: [{x, y}]
+            };
+            
+            // Disable scrolling while drawing
+            if (state.isDrawingMode) {
+                document.body.style.overflow = 'hidden';
+            }
+        }
+        
+        function draw(e) {
+            if (!state.isDrawingMode || !state.drawing.isDrawing) return;
+            
+            const rect = drawingCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // Add point to current shape
+            state.drawing.currentShape.points.push({x, y});
+            
+            // Redraw all shapes
+            redrawShapes();
+            
+            // Draw current shape preview
+            drawShapePreview(state.drawing.currentShape);
+        }
+        
+        function stopDrawing() {
+            if (!state.isDrawingMode || !state.drawing.isDrawing) return;
+            
+            state.drawing.isDrawing = false;
+            
+            // Save the shape
+            if (state.drawing.currentShape.points.length > 1) {
+                state.drawing.shapes.push({...state.drawing.currentShape});
+                saveDrawingState();
+            }
+            
+            state.drawing.currentShape = null;
+            
+            // Re-enable scrolling
+            document.body.style.overflow = 'auto';
+        }
+        
+        function redrawShapes() {
+            const ctx = drawingCanvas.getContext('2d');
+            ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+            
+            // Draw all saved shapes
+            state.drawing.shapes.forEach(shape => {
+                drawShape(shape, ctx);
+            });
+        }
+        
+        function drawShape(shape, ctx) {
+            ctx.strokeStyle = shape.color;
+            ctx.lineWidth = shape.width;
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            
+            if (shape.tool === 'pen') {
+                ctx.beginPath();
+                ctx.moveTo(shape.points[0].x, shape.points[0].y);
+                
+                for (let i = 1; i < shape.points.length; i++) {
+                    ctx.lineTo(shape.points[i].x, shape.points[i].y);
+                }
+                
+                ctx.stroke();
+            } else if (shape.tool === 'rectangle') {
+                const start = shape.points[0];
+                const end = shape.points[shape.points.length - 1];
+                
+                ctx.strokeRect(
+                    start.x, 
+                    start.y, 
+                    end.x - start.x, 
+                    end.y - start.y
+                );
+            } else if (shape.tool === 'circle') {
+                const start = shape.points[0];
+                const end = shape.points[shape.points.length - 1];
+                const radius = Math.sqrt(
+                    Math.pow(end.x - start.x, 2) + 
+                    Math.pow(end.y - start.y, 2)
+                ) / 2;
+                const centerX = (start.x + end.x) / 2;
+                const centerY = (start.y + end.y) / 2;
+                
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                ctx.stroke();
+            } else if (shape.tool === 'arrow') {
+                const start = shape.points[0];
+                const end = shape.points[shape.points.length - 1];
+                
+                // Draw arrow line
+                ctx.beginPath();
+                ctx.moveTo(start.x, start.y);
+                ctx.lineTo(end.x, end.y);
+                ctx.stroke();
+                
+                // Draw arrowhead
+                const angle = Math.atan2(end.y - start.y, end.x - start.x);
+                const headLength = 15;
+                
+                ctx.beginPath();
+                ctx.moveTo(end.x, end.y);
+                ctx.lineTo(
+                    end.x - headLength * Math.cos(angle - Math.PI / 6),
+                    end.y - headLength * Math.sin(angle - Math.PI / 6)
+                );
+                ctx.moveTo(end.x, end.y);
+                ctx.lineTo(
+                    end.x - headLength * Math.cos(angle + Math.PI / 6),
+                    end.y - headLength * Math.sin(angle + Math.PI / 6)
+                );
+                ctx.stroke();
+            }
+        }
+        
+        function drawShapePreview(shape) {
+            const ctx = drawingCanvas.getContext('2d');
+            drawShape(shape, ctx);
+            
+            // For rectangle and circle, draw dashed preview
+            if (shape.tool === 'rectangle' || shape.tool === 'circle' || shape.tool === 'arrow') {
+                ctx.setLineDash([5, 5]);
+                drawShape(shape, ctx);
+                ctx.setLineDash([]);
+            }
+        }
+        
+        // Navigation functions
+        function navigateToSectionView() {
+            state.currentView = 'section';
+            state.currentSection = null;
+            
+            sectionView.classList.remove('inactive');
+            sectionView.classList.add('active');
+            
+            pageView.classList.remove('active');
+            pageView.classList.add('inactive');
+            
+            editorView.classList.remove('active');
+            editorView.classList.add('inactive');
+            
+            renderSections();
+        }
+        
+        function navigateToPageView(sectionId) {
+            state.currentView = 'page';
+            const section = state.sections.find(s => s.id === sectionId);
+            if (!section) return;
+            
+            state.currentSection = section;
+            currentSectionTitle.innerHTML = `<i class="fas fa-folder"></i> ${section.name}`;
+            
+            sectionView.classList.remove('active');
+            sectionView.classList.add('inactive');
+            
+            pageView.classList.remove('inactive');
+            pageView.classList.add('active');
+            
+            editorView.classList.remove('active');
+            editorView.classList.add('inactive');
+            
+            renderPages(sectionId);
+        }
+        
+        function navigateToEditorView(pageId) {
+            state.currentView = 'editor';
+            const section = state.currentSection;
+            if (!section) return;
+            
+            const page = section.pages.find(p => p.id === pageId);
+            if (!page) return;
+            
+            state.currentPage = page;
+            editorPageTitle.textContent = page.name;
+            editorPageDate.textContent = formatDate(new Date(page.lastModified));
+            
+            // Load page content
+            noteContent.innerHTML = page.content || '';
+            
+            // Load drawings if any
+            state.drawing.shapes = page.drawings || [];
+            redrawShapes();
+            
+            sectionView.classList.remove('active');
+            sectionView.classList.add('inactive');
+            
+            pageView.classList.remove('active');
+            pageView.classList.add('inactive');
+            
+            editorView.classList.remove('inactive');
+            editorView.classList.add('active');
+        }
+        
+        // Render functions
+        function renderSections() {
+            sectionsContainer.innerHTML = '';
+            
+            state.sections.forEach(section => {
+                const sectionCard = document.createElement('div');
+                sectionCard.className = 'card';
+                sectionCard.innerHTML = `
+                    <div class="card-header">
+                        <div class="card-title">${section.name}</div>
+                        <div class="card-actions">
+                            <button class="action-btn delete-btn" data-section-id="${section.id}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        ${section.pages.length} page(s)
+                    </div>
+                `;
+                
+                // Open section on click
+                sectionCard.addEventListener('click', (e) => {
+                    if (!e.target.closest('.action-btn')) {
+                        navigateToPageView(section.id);
+                    }
+                });
+                
+                // Delete section button
+                const deleteBtn = sectionCard.querySelector('.delete-btn');
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (confirm(`Are you sure you want to delete "${section.name}" and all its pages?`)) {
+                        deleteSection(section.id);
+                    }
+                });
+                
+                sectionsContainer.appendChild(sectionCard);
+            });
+        }
+        
+        function renderPages(sectionId) {
+            pagesContainer.innerHTML = '';
+            
+            const section = state.sections.find(s => s.id === sectionId);
+            if (!section) return;
+            
+            section.pages.forEach(page => {
+                const pageCard = document.createElement('div');
+                pageCard.className = 'card';
+                pageCard.innerHTML = `
+                    <div class="card-header">
+                        <div class="card-title">${page.name}</div>
+                        <div class="card-actions">
+                            <button class="action-btn rename-btn" data-page-id="${page.id}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="action-btn delete-btn" data-page-id="${page.id}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        Last modified: ${formatDate(new Date(page.lastModified))}
+                    </div>
+                `;
+                
+                // Open page on click
+                pageCard.addEventListener('click', (e) => {
+                    if (!e.target.closest('.action-btn')) {
+                        navigateToEditorView(page.id);
+                    }
+                });
+                
+                // Rename page button
+                const renameBtn = pageCard.querySelector('.rename-btn');
+                renameBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    openPageModal(page.id);
+                });
+                
+                // Delete page button
+                const deleteBtn = pageCard.querySelector('.delete-btn');
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (confirm(`Are you sure you want to delete "${page.name}"?`)) {
+                        deletePage(page.id);
+                    }
+                });
+                
+                pagesContainer.appendChild(pageCard);
+            });
+        }
+        
+        // Section/Page management
+        function openSectionModal(sectionId = null) {
+            const modalTitle = document.getElementById('section-modal-title');
+            const sectionNameInput = document.getElementById('section-name');
+            
+            if (sectionId) {
+                // Edit mode
+                const section = state.sections.find(s => s.id === sectionId);
+                if (!section) return;
+                
+                modalTitle.textContent = 'Edit Section';
+                sectionNameInput.value = section.name;
+                sectionNameInput.setAttribute('data-section-id', sectionId);
+            } else {
+                // Add mode
+                modalTitle.textContent = 'New Section';
+                sectionNameInput.value = '';
+                sectionNameInput.removeAttribute('data-section-id');
+            }
+            
+            sectionModal.classList.add('active');
+            sectionNameInput.focus();
+        }
+        
+        function saveSection() {
+            const sectionNameInput = document.getElementById('section-name');
+            const name = sectionNameInput.value.trim();
+            const sectionId = sectionNameInput.getAttribute('data-section-id');
+            
+            if (!name) {
+                alert('Please enter a section name');
+                return;
+            }
+            
+            if (sectionId) {
+                // Update existing section
+                const section = state.sections.find(s => s.id === parseInt(sectionId));
+                if (section) {
+                    section.name = name;
+                }
+            } else {
+                // Create new section
+                const newId = state.sections.length > 0 
+                    ? Math.max(...state.sections.map(s => s.id)) + 1 
+                    : 1;
+                
+                state.sections.push({
+                    id: newId,
+                    name: name,
+                    pages: []
+                });
+            }
+            
+            saveToLocalStorage();
+            renderSections();
+            sectionModal.classList.remove('active');
+        }
+        
+        function deleteSection(sectionId) {
+            state.sections = state.sections.filter(s => s.id !== sectionId);
+            saveToLocalStorage();
+            renderSections();
+        }
+        
+        function openPageModal(pageId = null) {
+            if (!state.currentSection) return;
+            
+            const modalTitle = document.getElementById('page-modal-title');
+            const pageNameInput = document.getElementById('page-name');
+            
+            if (pageId) {
+                // Edit mode
+                const page = state.currentSection.pages.find(p => p.id === pageId);
+                if (!page) return;
+                
+                modalTitle.textContent = 'Rename Page';
+                pageNameInput.value = page.name;
+                pageNameInput.setAttribute('data-page-id', pageId);
+            } else {
+                // Add mode
+                modalTitle.textContent = 'New Page';
+                pageNameInput.value = '';
+                pageNameInput.removeAttribute('data-page-id');
+            }
+            
+            pageModal.classList.add('active');
+            pageNameInput.focus();
+        }
+        
+        function savePage() {
+            if (!state.currentSection) return;
+            
+            const pageNameInput = document.getElementById('page-name');
+            const name = pageNameInput.value.trim();
+            const pageId = pageNameInput.getAttribute('data-page-id');
+            
+            if (!name) {
+                alert('Please enter a page name');
+                return;
+            }
+            
+            if (pageId) {
+                // Update existing page
+                const page = state.currentSection.pages.find(p => p.id === parseInt(pageId));
+                if (page) {
+                    page.name = name;
+                    page.lastModified = new Date().toISOString();
+                }
+            } else {
+                // Create new page
+                const newId = state.currentSection.pages.length > 0
+                    ? Math.max(...state.currentSection.pages.map(p => p.id)) + 1
+                    : 1;
+                
+                state.currentSection.pages.push({
+                    id: newId,
+                    name: name,
+                    content: '',
+                    lastModified: new Date().toISOString(),
+                    drawings: []
+                });
+            }
+            
+            saveToLocalStorage();
+            renderPages(state.currentSection.id);
+            pageModal.classList.remove('active');
+        }
+        
+        function deletePage(pageId) {
+            if (!state.currentSection) return;
+            
+            state.currentSection.pages = state.currentSection.pages.filter(p => p.id !== pageId);
+            saveToLocalStorage();
+            renderPages(state.currentSection.id);
+        }
+        
+        // Save page content when leaving editor
+        function saveCurrentPageContent() {
+            if (!state.currentPage) return;
+            
+            state.currentPage.content = noteContent.innerHTML;
+            state.currentPage.drawings = [...state.drawing.shapes];
+            state.currentPage.lastModified = new Date().toISOString();
+            
+            saveToLocalStorage();
+        }
+        
+        // Drawing mode functions
+        function toggleDrawingMode() {
+            state.isDrawingMode = !state.isDrawingMode;
+            
+            if (state.isDrawingMode) {
+                // Switch to drawing mode
+                textTools.style.display = 'none';
+                drawTools.style.display = 'flex';
+                drawModeBtn.classList.add('active');
+                modeIndicator.textContent = 'Drawing Mode';
+                modeIndicator.style.backgroundColor = '#ff4081';
+                
+                // Make canvas interactive
+                drawingCanvas.style.pointerEvents = 'auto';
+                noteContent.style.pointerEvents = 'none';
+            } else {
+                // Switch to text mode
+                textTools.style.display = 'flex';
+                drawTools.style.display = 'none';
+                drawModeBtn.classList.remove('active');
+                modeIndicator.textContent = 'Text Mode';
+                modeIndicator.style.backgroundColor = '#5c6bc0';
+                
+                // Make text editor interactive
+                drawingCanvas.style.pointerEvents = 'none';
+                noteContent.style.pointerEvents = 'auto';
+            }
+        }
+        
+        function setDrawingTool(tool) {
+            state.drawing.tool = tool;
+            
+            // Update active tool button
+            [penTool, rectangleTool, circleTool, arrowTool].forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            document.getElementById(`${tool}-tool`).classList.add('active');
+        }
+        
+        // Undo/Redo functions
+        function trackContentChange() {
+            // Save current state to undo stack
+            if (state.currentPage) {
+                state.undoStack.push({
+                    content: noteContent.innerHTML,
+                    drawings: [...state.drawing.shapes]
+                });
+                
+                // Clear redo stack when new change is made
+                state.redoStack = [];
+                
+                // Limit undo stack size
+                if (state.undoStack.length > 50) {
+                    state.undoStack.shift();
+                }
+                
+                // Save to current page
+                saveCurrentPageContent();
+            }
+        }
+        
+        function saveDrawingState() {
+            trackContentChange();
+        }
+        
+        function undoAction() {
+            if (state.undoStack.length === 0) return;
+            
+            // Save current state to redo stack
+            state.redoStack.push({
+                content: noteContent.innerHTML,
+                drawings: [...state.drawing.shapes]
+            });
+            
+            // Restore previous state from undo stack
+            const previousState = state.undoStack.pop();
+            noteContent.innerHTML = previousState.content;
+            state.drawing.shapes = previousState.drawings;
+            redrawShapes();
+            
+            // Update page state
+            if (state.currentPage) {
+                state.currentPage.content = noteContent.innerHTML;
+                state.currentPage.drawings = [...state.drawing.shapes];
+                saveToLocalStorage();
+            }
+        }
+        
+        function redoAction() {
+            if (state.redoStack.length === 0) return;
+            
+            // Save current state to undo stack
+            state.undoStack.push({
+                content: noteContent.innerHTML,
+                drawings: [...state.drawing.shapes]
+            });
+            
+            // Restore next state from redo stack
+            const nextState = state.redoStack.pop();
+            noteContent.innerHTML = nextState.content;
+            state.drawing.shapes = nextState.drawings;
+            redrawShapes();
+            
+            // Update page state
+            if (state.currentPage) {
+                state.currentPage.content = noteContent.innerHTML;
+                state.currentPage.drawings = [...state.drawing.shapes];
+                saveToLocalStorage();
+            }
+        }
+        
+        // Image insertion
+        function handleImageUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                document.getElementById('image-url').value = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function insertImage() {
+            const imageUrl = document.getElementById('image-url').value.trim();
+            
+            if (!imageUrl) {
+                alert('Please enter an image URL or upload an image');
+                return;
+            }
+            
+            // Create image element
+            const img = document.createElement('img');
+            img.src = imageUrl;
+            img.style.maxWidth = '100%';
+            img.style.margin = '10px 0';
+            img.style.borderRadius = '4px';
+            
+            // Make image draggable and resizable
+            img.draggable = true;
+            
+            // Insert image at cursor position
+            document.execCommand('insertHTML', false, img.outerHTML);
+            
+            // Clear input and close modal
+            document.getElementById('image-url').value = '';
+            document.getElementById('image-upload').value = '';
+            imageModal.classList.remove('active');
+            
+            trackContentChange();
+        }
+        
+        // Table insertion
+        function insertTable() {
+            const rows = parseInt(document.getElementById('table-rows').value);
+            const cols = parseInt(document.getElementById('table-columns').value);
+            
+            if (rows < 1 || cols < 1) {
+                alert('Please enter valid row and column numbers');
+                return;
+            }
+            
+            // Create table HTML
+            let tableHtml = '<table style="border-collapse: collapse; width: 100%; margin: 10px 0;">';
+            
+            for (let i = 0; i < rows; i++) {
+                tableHtml += '<tr>';
+                for (let j = 0; j < cols; j++) {
+                    tableHtml += `<td style="border: 1px solid ${getComputedStyle(document.documentElement).getPropertyValue('--border-color')}; padding: 8px;">&nbsp;</td>`;
+                }
+                tableHtml += '</tr>';
+            }
+            
+            tableHtml += '</table>';
+            
+            // Insert table at cursor position
+            document.execCommand('insertHTML', false, tableHtml);
+            
+            // Close modal
+            tableModal.classList.remove('active');
+            
+            trackContentChange();
+        }
+        
+        // Theme functions
+        function toggleTheme() {
+            state.isDarkMode = !state.isDarkMode;
+            updateTheme();
+        }
+        
+        function updateTheme() {
+            if (state.isDarkMode) {
+                document.body.classList.remove('light-mode');
+                themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+            } else {
+                document.body.classList.add('light-mode');
+                themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+            }
+        }
+        
+        // Utility functions
+        function formatDate(date) {
+            const now = new Date();
+            const diffTime = Math.abs(now - date);
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays === 0) {
+                return 'Today';
+            } else if (diffDays === 1) {
+                return 'Yesterday';
+            } else if (diffDays < 7) {
+                return `${diffDays} days ago`;
+            } else {
+                return date.toLocaleDateString();
+            }
+        }
+        
+        // Initialize the app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+  </html>
